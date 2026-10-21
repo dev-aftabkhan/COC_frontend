@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Sidebar, TabType } from './components/Sidebar';
 import { Header } from './components/Header';
+import { OverviewView } from './features/overview/OverviewView';
 import { ComparisonView } from './features/comparison/ComparisonView';
 import { BoqView } from './features/boq/BoqView';
 import { QuotationsView } from './features/quotations/QuotationsView';
 import { FinancialsView } from './features/financials/FinancialsView';
+import { ProcurementView } from './features/procurement/ProcurementView';
+import { BenchmarksView } from './features/benchmarks/BenchmarksView';
+import { ObservabilityView } from './features/observability/ObservabilityView';
 import { api } from './services/api';
 import { Project, CostComparisonResult } from './types';
-import {
-  BarChart3,
-  FileSpreadsheet,
-  FileText,
-  DollarSign,
-} from 'lucide-react';
 
 export const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,7 +20,7 @@ export const App: React.FC = () => {
   const [quotations, setQuotations] = useState<any[]>([]);
   const [health, setHealth] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'comparison' | 'boq' | 'quotations' | 'financials'>('comparison');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -83,89 +82,96 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleExportReport = () => {
+    if (!comparison) return;
+    const headers = ['Item #', 'Title', 'Unit', 'Quantity', 'Baseline Rate', 'Baseline Amount'];
+    comparison.contractorSummaries.forEach((c) => {
+      headers.push(`${c.contractorName} Rate`, `${c.contractorName} Amount`, `${c.contractorName} Scope`);
+    });
+
+    const csvRows = [headers.join(',')];
+    for (const r of comparison.matrixRows) {
+      const row = [
+        `"${r.itemNumber}"`,
+        `"${r.title.replace(/"/g, '""')}"`,
+        `"${r.unit}"`,
+        `"${r.quantity}"`,
+        `"${r.baselineRate}"`,
+        `"${r.baselineAmount}"`,
+      ];
+      for (const cq of r.contractorQuotes) {
+        row.push(`"${cq.quotedRate}"`, `"${cq.quotedAmount}"`, `"${cq.inclusionState}"`);
+      }
+      csvRows.push(row.join(','));
+    }
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Tender_Report_${comparison.projectName.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-slate-100 flex flex-col font-sans">
-      <Header
-        projects={projects}
+    <div className="min-h-screen bg-[#070b13] text-slate-100 flex font-sans antialiased">
+      {/* Collapsible Left Navigation Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
         selectedProject={selectedProject}
+        projects={projects}
         onSelectProject={(p) => setSelectedProject(p)}
         systemHealth={health}
       />
 
-      {/* Navigation Sub-header / Tab Bar */}
-      <div className="bg-[#0f1628] border-b border-slate-800 px-6 py-2.5 flex items-center justify-between sticky top-[61px] z-40 backdrop-blur-md">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <button
-            onClick={() => setActiveTab('comparison')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === 'comparison'
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Bid Comparison Matrix</span>
-          </button>
+      {/* Main Content View Container */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          selectedProject={selectedProject}
+          systemHealth={health}
+          onExportReport={handleExportReport}
+        />
 
-          <button
-            onClick={() => setActiveTab('boq')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === 'boq'
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Client BOQ Master ({boqVersions[0]?.items?.length || 0})</span>
-          </button>
+        <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
+          {activeTab === 'overview' && (
+            <OverviewView
+              comparison={comparison}
+              project={selectedProject}
+              onNavigateToComparison={() => setActiveTab('comparison')}
+              onNavigateToBOQ={() => setActiveTab('boq')}
+            />
+          )}
 
-          <button
-            onClick={() => setActiveTab('quotations')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === 'quotations'
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Contractor Quotations ({quotations.length})</span>
-          </button>
+          {activeTab === 'comparison' && (
+            <ComparisonView comparison={comparison} loading={loading} />
+          )}
 
-          <button
-            onClick={() => setActiveTab('financials')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === 'financials'
-                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>Profitability & Margins</span>
-          </button>
-        </div>
+          {activeTab === 'boq' && (
+            <BoqView boqVersions={boqVersions} onApprove={handleApproveBOQ} />
+          )}
 
-        <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400">
-          <span className="font-mono text-cyan-400 font-semibold">{selectedProject?.code}</span>
-          <span>•</span>
-          <span>Client: <strong className="text-slate-200">{selectedProject?.client?.name}</strong></span>
-        </div>
+          {activeTab === 'quotations' && (
+            <QuotationsView quotations={quotations} />
+          )}
+
+          {activeTab === 'financials' && (
+            <FinancialsView project={selectedProject} />
+          )}
+
+          {activeTab === 'procurement' && (
+            <ProcurementView project={selectedProject} />
+          )}
+
+          {activeTab === 'benchmarks' && <BenchmarksView />}
+
+          {activeTab === 'observability' && (
+            <ObservabilityView systemHealth={health} />
+          )}
+        </main>
       </div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
-        {activeTab === 'comparison' && (
-          <ComparisonView comparison={comparison} loading={loading} />
-        )}
-        {activeTab === 'boq' && (
-          <BoqView boqVersions={boqVersions} onApprove={handleApproveBOQ} />
-        )}
-        {activeTab === 'quotations' && (
-          <QuotationsView quotations={quotations} />
-        )}
-        {activeTab === 'financials' && (
-          <FinancialsView project={selectedProject} />
-        )}
-      </main>
     </div>
   );
 };
