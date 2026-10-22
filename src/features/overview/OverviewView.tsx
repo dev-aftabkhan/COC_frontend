@@ -46,11 +46,24 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     );
   }
 
-  // Prepare chart data: Raw vs Scope-Adjusted
+  // Format currency in Indian notation (Crores / Lakhs / Thousands)
+  const formatINR = (val: string | number) => {
+    const num = Number(val);
+    if (isNaN(num)) return '₹0.00';
+    if (num >= 10000000) {
+      return `₹${(num / 10000000).toFixed(2)} Cr`;
+    }
+    if (num >= 100000) {
+      return `₹${(num / 100000).toFixed(2)} L`;
+    }
+    return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  };
+
+  // Prepare chart data: Raw vs Scope-Adjusted in Crores
   const chartData = comparison.contractorSummaries.map((c) => ({
     name: c.contractorName.replace(/\(.*?\)/g, '').trim(),
-    raw: Math.round(Number(c.rawQuotedTotal) / 100000), // in Lakhs
-    adjusted: Math.round(Number(c.scopeAdjustedTotal) / 100000), // in Lakhs
+    raw: Number((Number(c.rawQuotedTotal) / 10000000).toFixed(2)),
+    adjusted: Number((Number(c.scopeAdjustedTotal) / 10000000).toFixed(2)),
     missing: c.missingItemsCount,
     compliant: c.isFullyCompliant,
   }));
@@ -64,6 +77,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   const totalContractors = comparison.contractorSummaries.length;
   const compliantCount = comparison.contractorSummaries.filter((c) => c.isFullyCompliant).length;
+  const sortedContractors = [...comparison.contractorSummaries].sort(
+    (a, b) => a.rankScopeAdjusted - b.rankScopeAdjusted,
+  );
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
@@ -105,28 +121,34 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       {/* KPI Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="glass-panel p-5 relative overflow-hidden group">
+        <div
+          className="glass-panel p-5 relative overflow-hidden group"
+          title={`Exact Baseline: ₹${Number(comparison.baselineTotal).toLocaleString('en-IN')}`}
+        >
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>BOQ Baseline Value</span>
             <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-2xl font-black text-white font-mono tracking-tight">
-            ₹{Number(comparison.baselineTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.baselineTotal)}
           </div>
           <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
             <span className="text-emerald-400 font-bold">Approved</span>
-            <span>Client Scope Baseline</span>
+            <span>Client Scope Baseline (97 items)</span>
           </div>
         </div>
 
         {/* Metric 2 */}
-        <div className="glass-panel p-5 relative overflow-hidden group">
+        <div
+          className="glass-panel p-5 relative overflow-hidden group"
+          title={`Exact Raw: ₹${Number(comparison.lowestRawBid.amount).toLocaleString('en-IN')}`}
+        >
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Quoted Raw Bid</span>
             <Building className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-300 font-mono tracking-tight">
-            ₹{Number(comparison.lowestRawBid.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.lowestRawBid.amount)}
           </div>
           <div className="text-[11px] text-amber-400/90 mt-2 flex items-center gap-1 truncate font-medium">
             <span>By {comparison.lowestRawBid.contractorName}</span>
@@ -135,13 +157,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         {/* Metric 3 */}
-        <div className="glass-panel p-5 relative overflow-hidden group border-cyan-500/30">
+        <div
+          className="glass-panel p-5 relative overflow-hidden group border-cyan-500/30"
+          title={`Exact Scope-Adjusted: ₹${Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN')}`}
+        >
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Scope-Adjusted Bid</span>
             <Sparkles className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
-            ₹{Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.lowestScopeAdjustedBid.amount)}
           </div>
           <div className="text-[11px] text-cyan-300 mt-2 flex items-center gap-1 font-medium truncate">
             <span>By {comparison.lowestScopeAdjustedBid.contractorName}</span>
@@ -161,7 +186,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </span>
             ) : (
               <span className="text-amber-400 flex items-center gap-1.5 text-sm font-semibold">
-                <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions Active
+                <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions Reconciled
               </span>
             )}
           </div>
@@ -175,32 +200,40 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart 1: Contractor Bid Dispersion */}
         <div className="glass-panel p-5 lg:col-span-2 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h3 className="text-sm font-bold text-slate-100">
                 Contractor Price Dispersion: Quoted vs Scope-Adjusted
               </h3>
               <p className="text-[11px] text-slate-400">
-                Amounts normalized in ₹ Lakhs. Scope adjustments account for omitted items and client-supplied scope.
+                Amounts normalized in ₹ Crores. Missing line items imputed deterministically.
               </p>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Unit: ₹ Lakhs (100k)</span>
+            <span className="text-[10px] text-cyan-400 font-mono bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded">
+              Unit: ₹ Crores (Cr)
+            </span>
           </div>
 
-          <div className="h-[280px] w-full">
+          <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+              <BarChart data={chartData} margin={{ top: 20, right: 15, left: -10, bottom: 45 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis
                   dataKey="name"
-                  stroke="#64748b"
+                  stroke="#94a3b8"
                   fontSize={10}
                   tickLine={false}
                   interval={0}
-                  angle={-25}
+                  angle={-20}
                   textAnchor="end"
+                  height={50}
                 />
-                <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                  tickFormatter={(val) => `₹${val} Cr`}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#0f172a',
@@ -210,13 +243,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                     color: '#f8fafc',
                   }}
                   formatter={(val: any, name: string) => [
-                    `₹${val} Lakhs`,
-                    name === 'raw' ? 'Quoted Raw' : 'Scope-Adjusted True Cost',
+                    `₹${val} Cr`,
+                    name === 'raw' ? 'Quoted Raw Bid' : 'Scope-Adjusted True Cost',
                   ]}
                 />
                 <Legend
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                  formatter={(val) => (val === 'raw' ? 'Raw Quoted Amount' : 'Scope-Adjusted True Cost')}
+                  verticalAlign="top"
+                  align="right"
+                  wrapperStyle={{ fontSize: '11px', paddingBottom: '16px' }}
+                  formatter={(val) => (val === 'raw' ? 'Raw Quoted Bid' : 'Scope-Adjusted True Cost')}
                 />
                 <Bar dataKey="raw" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 <Bar dataKey="adjusted" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={32} />
@@ -232,7 +267,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <p className="text-[11px] text-slate-400">Budget allocation across Civil & Wet Works packages</p>
           </div>
 
-          <div className="h-[200px] w-full flex items-center justify-center">
+          <div className="h-[210px] w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -296,7 +331,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {comparison.contractorSummaries.slice(0, 4).map((c) => (
+          {sortedContractors.slice(0, 4).map((c) => (
             <div
               key={c.contractorId}
               className="bg-[#0b101c] p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between"
@@ -319,7 +354,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div className="pt-2 border-t border-slate-800/80">
                 <div className="text-[10px] text-slate-400">Scope-Adjusted Cost</div>
                 <div className="text-sm font-mono font-bold text-cyan-300">
-                  ₹{Number(c.scopeAdjustedTotal).toLocaleString('en-IN')}
+                  {formatINR(c.scopeAdjustedTotal)}
                 </div>
               </div>
             </div>

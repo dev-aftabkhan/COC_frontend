@@ -93,34 +93,57 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
     document.body.removeChild(link);
   };
 
+  // Currency formatter
+  const formatINR = (val: string | number) => {
+    const num = Number(val);
+    if (isNaN(num)) return '₹0.00';
+    if (num >= 10000000) {
+      return `₹${(num / 10000000).toFixed(2)} Cr`;
+    }
+    if (num >= 100000) {
+      return `₹${(num / 100000).toFixed(2)} L`;
+    }
+    return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  };
+
+  const sortedContractors = [...comparison.contractorSummaries].sort(
+    (a, b) => a.rankScopeAdjusted - b.rankScopeAdjusted,
+  );
+
   return (
     <div className="space-y-6 animate-fade-in relative pb-12">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="glass-panel p-5 relative overflow-hidden">
+        <div
+          className="glass-panel p-5 relative overflow-hidden"
+          title={`Approved Baseline: ₹${Number(comparison.baselineTotal).toLocaleString('en-IN')}`}
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>BOQ Baseline ({comparison.boqVersionCode})</span>
             <Layers className="w-4 h-4 text-blue-400" />
           </div>
           <div className="text-2xl font-black text-white tracking-tight font-mono">
-            ₹{Number(comparison.baselineTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.baselineTotal)}
           </div>
           <div className="flex items-center gap-1.5 mt-2 text-xs text-blue-400 font-medium">
-            <span>Approved Tender Baseline</span>
+            <span>Approved Tender Baseline (97 Items)</span>
           </div>
         </div>
 
         {/* Metric 2 */}
-        <div className="glass-panel p-5 relative overflow-hidden">
+        <div
+          className="glass-panel p-5 relative overflow-hidden"
+          title={`Raw Quoted Bid: ₹${Number(comparison.lowestRawBid.amount).toLocaleString('en-IN')}`}
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Quoted Raw Bid</span>
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-300 tracking-tight font-mono">
-            ₹{Number(comparison.lowestRawBid.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.lowestRawBid.amount)}
           </div>
           <div className="text-xs text-amber-400 font-medium mt-2 truncate">
             <span>By {comparison.lowestRawBid.contractorName}</span>
@@ -128,14 +151,17 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
         </div>
 
         {/* Metric 3 */}
-        <div className="glass-panel p-5 relative overflow-hidden border-cyan-500/30">
+        <div
+          className="glass-panel p-5 relative overflow-hidden border-cyan-500/30"
+          title={`Scope-Adjusted Bid: ₹${Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN')}`}
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/15 rounded-full blur-xl pointer-events-none" />
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Scope-Adjusted Bid</span>
             <Sparkles className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-2xl font-black text-cyan-400 tracking-tight font-mono">
-            ₹{Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(comparison.lowestScopeAdjustedBid.amount)}
           </div>
           <div className="flex items-center gap-1 mt-2 text-xs text-cyan-300 font-medium truncate">
             <span>By {comparison.lowestScopeAdjustedBid.contractorName}</span>
@@ -156,7 +182,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
               </span>
             ) : (
               <span className="text-amber-400 flex items-center gap-1.5 text-xs font-semibold">
-                <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions / Partial Scope Detected
+                <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions Reconciled
               </span>
             )}
           </div>
@@ -173,7 +199,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
             <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <ArrowUpDown className="w-4 h-4 text-cyan-400" /> Contractor Quotations & Normalization Leaderboard
             </h3>
-            <p className="text-[11px] text-slate-400">Ranked by Scope-Adjusted True Cost (including missing materials)</p>
+            <p className="text-[11px] text-slate-400">Ranked strictly by Scope-Adjusted True Cost (including missing materials)</p>
           </div>
           <button
             onClick={handleExportCSV}
@@ -185,7 +211,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {comparison.contractorSummaries.map((c) => {
+          {sortedContractors.map((c) => {
             const isRank1 = c.rankScopeAdjusted === 1;
             return (
               <div
@@ -219,13 +245,13 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400 text-[11px]">Raw Quoted:</span>
                       <span className="font-mono font-semibold text-slate-200 text-xs">
-                        ₹{Number(c.rawQuotedTotal).toLocaleString('en-IN')}
+                        {formatINR(c.rawQuotedTotal)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center pt-1 border-t border-slate-800">
                       <span className="text-cyan-400 font-semibold text-[11px]">Scope-Adjusted:</span>
                       <span className="font-mono font-bold text-cyan-300 text-xs">
-                        ₹{Number(c.scopeAdjustedTotal).toLocaleString('en-IN')}
+                        {formatINR(c.scopeAdjustedTotal)}
                       </span>
                     </div>
                   </div>
@@ -319,8 +345,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                   Baseline (Est)
                 </th>
 
-                {/* Dynamic Columns for all 8 contractors */}
-                {comparison.contractorSummaries.map((c) => (
+                {/* Dynamic Columns for all 8 contractors strictly sorted by rank */}
+                {sortedContractors.map((c) => (
                   <th
                     key={c.contractorId}
                     className="py-3 px-3 border-b border-slate-800 min-w-[170px] text-right font-bold"
@@ -359,21 +385,27 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                     {Number(row.quantity).toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-semibold bg-blue-950/10 text-blue-300">
-                    <div>₹{row.baselineRate}</div>
+                    <div>₹{Number(row.baselineRate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
                     <div className="text-[9px] text-blue-400/80 font-normal">
-                      ₹{Number(row.baselineAmount).toLocaleString()}
+                      {formatINR(row.baselineAmount)}
                     </div>
                   </td>
 
-                  {/* Contractor Quote Rates & Amounts */}
-                  {row.contractorQuotes.map((cq, cIdx) => {
+                  {/* Contractor Quote Rates & Amounts matched by contractor name */}
+                  {sortedContractors.map((sc) => {
+                    const cq = row.contractorQuotes.find((q) => q.contractorName === sc.contractorName) || {
+                      quotedRate: '0.00',
+                      quotedAmount: '0.00',
+                      inclusionState: 'EXCLUDED' as const,
+                      scopeAdjustedAmount: '0.00',
+                    };
                     const isLowest = cq.quotedRate === row.lowestQuotedRate && Number(cq.quotedRate) > 0;
                     const isClient = cq.inclusionState === 'CLIENT_SUPPLIED';
                     const isExcluded = cq.inclusionState === 'EXCLUDED' || Number(cq.quotedRate) === 0;
 
                     return (
                       <td
-                        key={cIdx}
+                        key={sc.contractorId}
                         className={`py-2.5 px-3 text-right font-mono transition-colors ${
                           isLowest
                             ? 'bg-emerald-950/30 border-l border-r border-emerald-500/20'
@@ -400,7 +432,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                               ₹{cq.quotedRate}
                             </div>
                             <div className="text-[10px] text-slate-400 font-normal">
-                              ₹{Number(cq.quotedAmount).toLocaleString()}
+                              {formatINR(cq.quotedAmount)}
                             </div>
                           </div>
                         )}

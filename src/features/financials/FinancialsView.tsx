@@ -20,6 +20,18 @@ export const FinancialsView: React.FC<FinancialsViewProps> = ({ project }) => {
   const marginPct = Number(f.forecastMarginPercent);
   const isHealthyMargin = marginPct >= 15;
 
+  const formatINR = (val: string | number) => {
+    const num = Number(val);
+    if (isNaN(num)) return '₹0.00';
+    if (num >= 10000000) {
+      return `₹${(num / 10000000).toFixed(2)} Cr`;
+    }
+    if (num >= 100000) {
+      return `₹${(num / 100000).toFixed(2)} L`;
+    }
+    return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Financial Health Header */}
@@ -32,32 +44,32 @@ export const FinancialsView: React.FC<FinancialsViewProps> = ({ project }) => {
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-5" title={`Exact: ₹${Number(f.contractRevenue).toLocaleString('en-IN')}`}>
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
             Contract Revenue Baseline
           </div>
           <div className="text-2xl font-black text-white">
-            ₹{Number(f.contractRevenue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(f.contractRevenue)}
           </div>
           <div className="text-xs text-blue-400 mt-2 font-medium">Approved Client Scope</div>
         </div>
 
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-5" title={`Exact: ₹${Number(f.forecastFinalCost).toLocaleString('en-IN')}`}>
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
             Forecast Final Cost
           </div>
           <div className="text-2xl font-black text-amber-300">
-            ₹{Number(f.forecastFinalCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(f.forecastFinalCost)}
           </div>
           <div className="text-xs text-amber-400 mt-2 font-medium">Recognized + Cost to Complete</div>
         </div>
 
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-5" title={`Exact: ₹${Number(f.forecastGrossMargin).toLocaleString('en-IN')}`}>
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
             Forecast Gross Margin
           </div>
           <div className={`text-2xl font-black ${isHealthyMargin ? 'text-emerald-400' : 'text-rose-400'}`}>
-            ₹{Number(f.forecastGrossMargin).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            {formatINR(f.forecastGrossMargin)}
           </div>
           <div className="text-xs text-emerald-400 mt-2 font-medium">Revenue − Forecast Final Cost</div>
         </div>
