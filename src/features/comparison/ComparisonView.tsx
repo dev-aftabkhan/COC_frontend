@@ -210,65 +210,81 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {sortedContractors.map((c) => {
-            const isRank1 = c.rankScopeAdjusted === 1;
-            return (
-              <div
-                key={c.contractorId}
-                className={`glass-panel p-4 flex flex-col justify-between transition-all ${
-                  isRank1
-                    ? 'border-cyan-500/60 bg-gradient-to-b from-[#142340] to-[#0f172a] shadow-glow'
-                    : 'hover:border-slate-600'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                        isRank1 ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      RANK #{c.rankScopeAdjusted}
-                    </span>
-                    <span className={c.isFullyCompliant ? 'badge badge-compliant' : 'badge badge-partial'}>
-                      {c.isFullyCompliant ? 'COMPLIANT' : 'PARTIAL SCOPE'}
-                    </span>
-                  </div>
-
-                  <div className="font-bold text-xs text-slate-100 mb-0.5 truncate" title={c.contractorName}>
-                    {c.contractorName}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono mb-3">{c.quotationNumber}</div>
-
-                  <div className="space-y-1 text-xs bg-[#090f1d] p-2.5 rounded-xl border border-slate-800/80 mb-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-[11px]">Raw Quoted:</span>
-                      <span className="font-mono font-semibold text-slate-200 text-xs">
-                        {formatINR(c.rawQuotedTotal)}
+        {sortedContractors.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {sortedContractors.map((c) => {
+              const isRank1 = c.rankScopeAdjusted === 1;
+              return (
+                <div
+                  key={c.contractorId}
+                  className={`glass-panel p-4 flex flex-col justify-between transition-all ${
+                    isRank1
+                      ? 'border-cyan-500/60 bg-gradient-to-b from-[#142340] to-[#0f172a] shadow-glow'
+                      : 'hover:border-slate-600'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                          isRank1 ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        RANK #{c.rankScopeAdjusted}
+                      </span>
+                      <span className={c.isFullyCompliant ? 'badge badge-compliant' : 'badge badge-partial'}>
+                        {c.isFullyCompliant ? 'COMPLIANT' : 'PARTIAL SCOPE'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-800">
-                      <span className="text-cyan-400 font-semibold text-[11px]">Scope-Adjusted:</span>
-                      <span className="font-mono font-bold text-cyan-300 text-xs">
-                        {formatINR(c.scopeAdjustedTotal)}
-                      </span>
+
+                    <div className="font-bold text-xs text-slate-100 mb-0.5 truncate" title={c.contractorName}>
+                      {c.contractorName}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono mb-3">{c.quotationNumber}</div>
+
+                    <div className="space-y-1 text-xs bg-[#090f1d] p-2.5 rounded-xl border border-slate-800/80 mb-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400 text-[11px]">Raw Quoted:</span>
+                        <span className="font-mono font-semibold text-slate-200 text-xs">
+                          {formatINR(c.rawQuotedTotal)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-800">
+                        <span className="text-cyan-400 font-semibold text-[11px]">Scope-Adjusted:</span>
+                        <span className="font-mono font-bold text-cyan-300 text-xs">
+                          {formatINR(c.scopeAdjustedTotal)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-[10px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-800">
-                  <span>
-                    Missing Items: <strong className={c.missingItemsCount > 0 ? 'text-amber-400' : 'text-slate-300'}>{c.missingItemsCount}</strong>
-                  </span>
-                  <span>
-                    Client Mat: <strong className={c.clientSuppliedCount > 0 ? 'text-indigo-400' : 'text-slate-300'}>{c.clientSuppliedCount}</strong>
-                  </span>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span>
+                      Missing Items: <strong className={c.missingItemsCount > 0 ? 'text-amber-400' : 'text-slate-300'}>{c.missingItemsCount}</strong>
+                    </span>
+                    <span>
+                      Client Mat: <strong className={c.clientSuppliedCount > 0 ? 'text-indigo-400' : 'text-slate-300'}>{c.clientSuppliedCount}</strong>
+                    </span>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="glass-panel p-4 rounded-xl border border-blue-900/50 bg-[#0c1427] flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                <Info className="w-4 h-4" />
               </div>
-            );
-          })}
-        </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-100">Awaiting Contractor Quotation Submissions</h4>
+                <p className="text-[11px] text-slate-400">
+                  Upload contractor quotation sheets in the <strong>Upload & Ingest</strong> hub to populate contractor rankings, rate deviations, and scope adjustments.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Comparison Matrix Table with Interactive Filtering */}
@@ -344,6 +360,9 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                 <th className="py-3 px-3 border-b border-slate-800 w-28 text-right bg-blue-950/20 text-blue-300">
                   Baseline (Est)
                 </th>
+                <th className="py-3 px-3 border-b border-slate-800 w-44 text-center bg-indigo-950/30 text-indigo-300">
+                  Historical DB Rate
+                </th>
 
                 {/* Dynamic Columns for all 8 contractors strictly sorted by rank */}
                 {sortedContractors.map((c) => (
@@ -355,6 +374,11 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                     <div className="text-[9px] text-cyan-400 font-mono font-normal">Rank #{c.rankScopeAdjusted}</div>
                   </th>
                 ))}
+                {sortedContractors.length === 0 && (
+                  <th className="py-3 px-3 border-b border-slate-800 min-w-[200px] text-center text-slate-400 font-normal italic">
+                    Contractor Bids (Pending Upload)
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -389,6 +413,40 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                     <div className="text-[9px] text-blue-400/80 font-normal">
                       {formatINR(row.baselineAmount)}
                     </div>
+                  </td>
+
+                  {/* Historical Rate & High/Low Indicator from Past DB Projects */}
+                  <td className="py-2.5 px-3 text-center font-mono bg-indigo-950/10">
+                    {row.historicalBenchmarkRate ? (
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-200">₹{row.historicalBenchmarkRate}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                              row.historicalIndicator === 'HIGH'
+                                ? 'bg-rose-950/90 text-rose-300 border border-rose-700/80'
+                                : row.historicalIndicator === 'LOW'
+                                ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-700/80'
+                                : 'bg-slate-800 text-slate-300'
+                            }`}
+                            title={`${row.historicalIndicator} vs ${row.historicalProjectName || 'historical project'}`}
+                          >
+                            <span>{row.historicalSymbol}</span>
+                            <span>{row.historicalVariancePercent || ''}</span>
+                          </span>
+                        </div>
+                        <div
+                          className="text-[9px] text-indigo-300/80 truncate max-w-[130px] mt-0.5"
+                          title={row.historicalProjectName || ''}
+                        >
+                          {row.historicalProjectName || 'Past DB Project'}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded font-medium">
+                        🆕 New Scope
+                      </span>
+                    )}
                   </td>
 
                   {/* Contractor Quote Rates & Amounts matched by contractor name */}
@@ -439,6 +497,12 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ comparison, load
                       </td>
                     );
                   })}
+
+                  {sortedContractors.length === 0 && (
+                    <td className="py-2.5 px-3 text-center text-slate-500 italic text-[11px]">
+                      Awaiting Contractor Quote
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

@@ -1,17 +1,153 @@
+export interface ClientContact {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  roleTitle?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  code: string;
+  phone?: string | null;
+  normalizedPhone?: string | null;
+  email?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
+  billingAddress?: string | null;
+  totalProjects: number;
+  activeProjects: number;
+  totalBudgetValue: string;
+  projects?: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    createdAt?: string;
+    assignedContractor?: { id: string; name: string } | null;
+    boqVersions?: { totalAmount: string }[];
+  }[];
+  contacts?: ClientContact[];
+  createdAt?: string;
+}
+
+export interface ContractorContact {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  isPrimary?: boolean;
+}
+
+export interface Contractor {
+  id: string;
+  name: string;
+  code: string;
+  phone?: string | null;
+  normalizedPhone?: string | null;
+  email?: string | null;
+  specialization?: string | null;
+  address?: string | null;
+  gstin?: string | null;
+  totalQuotationsSubmitted: number;
+  awardedProjectsCount: number;
+  totalBiddedValue: string;
+  assignedProjects?: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+  }[];
+  quotations?: {
+    id: string;
+    projectId: string;
+    quotationNumber: string;
+    totalRawAmount: string;
+    totalScopeAmount: string;
+    isCompliant: boolean;
+    isFinalized: boolean;
+    quotationType: string;
+    project?: { id: string; code: string; name: string; status: string };
+  }[];
+  contacts?: ContractorContact[];
+  createdAt?: string;
+}
+
+export interface QuotationItem {
+  id: string;
+  quotationId?: string;
+  itemNumber: string;
+  title?: string | null;
+  description: string;
+  unit: string;
+  quantity: string | number;
+  quotedRate: string | number;
+  quotedAmount: string | number;
+  negotiatedRate?: string | number | null;
+  negotiatedAmount?: string | number | null;
+  inclusionState: 'INCLUDED' | 'EXCLUDED' | 'CLIENT_SUPPLIED' | 'NOT_APPLICABLE' | 'UNKNOWN';
+  notes?: string | null;
+  sourceRow?: number | null;
+}
+
+export interface Quotation {
+  id: string;
+  projectId: string;
+  contractorId: string;
+  contractor: {
+    id: string;
+    name: string;
+    code: string;
+    phone?: string | null;
+    email?: string | null;
+  };
+  quotationNumber: string;
+  revision: string;
+  quotationType: string;
+  totalRawAmount: string;
+  totalScopeAmount: string;
+  isCompliant: boolean;
+  isFinalized: boolean;
+  finalizedAt?: string | null;
+  notes?: string | null;
+  items?: QuotationItem[];
+}
+
 export interface Project {
   id: string;
   code: string;
   name: string;
-  description?: string;
-  siteAddress?: string;
-  scopeSummary?: string;
+  description?: string | null;
+  siteAddress?: string | null;
+  scopeSummary?: string | null;
   status: string;
   client: {
     id: string;
     name: string;
     code: string;
-    gstin?: string;
+    phone?: string | null;
+    email?: string | null;
+    gstin?: string | null;
   };
+  assignedContractor?: {
+    id: string;
+    name: string;
+    code: string;
+    phone?: string | null;
+    email?: string | null;
+  } | null;
+  finalizedQuotation?: {
+    id: string;
+    quotationNumber: string;
+    totalRawAmount: string;
+    totalScopeAmount: string;
+    isFinalized: boolean;
+    finalizedAt?: string | null;
+    contractor?: { id: string; name: string; code: string };
+    items?: QuotationItem[];
+  } | null;
   boqVersions: {
     id: string;
     version: number;
@@ -19,17 +155,7 @@ export interface Project {
     totalAmount: string;
     isApproved: boolean;
   }[];
-  quotations: {
-    id: string;
-    quotationNumber: string;
-    totalRawAmount: string;
-    isCompliant: boolean;
-    contractor: {
-      id: string;
-      name: string;
-      code: string;
-    };
-  }[];
+  quotations: Quotation[];
   financials?: {
     contractRevenue: string;
     purchaseCommitments: string;
@@ -41,19 +167,20 @@ export interface Project {
     forecastGrossMargin: string;
     forecastMarginPercent: string;
   };
+  createdAt?: string;
 }
 
 export interface BOQItem {
   id: string;
   itemNumber: string;
-  category?: string;
+  category?: string | null;
   title: string;
   description: string;
   unit: string;
   quantity: string;
   estimatedRate: string;
   estimatedAmount: string;
-  sourceSheet?: string;
+  sourceSheet?: string | null;
 }
 
 export interface ContractorSummary {
@@ -74,6 +201,7 @@ export interface ContractorSummary {
 export interface ItemComparisonMatrixRow {
   boqItemId: string;
   itemNumber: string;
+  category?: string;
   title: string;
   description: string;
   unit: string;
@@ -90,7 +218,11 @@ export interface ItemComparisonMatrixRow {
   }[];
   lowestQuotedRate: string;
   lowestQuotedContractor: string;
-  historicalBenchmarkRate?: string;
+  historicalBenchmarkRate?: string | null;
+  historicalProjectName?: string | null;
+  historicalIndicator?: 'HIGH' | 'LOW' | 'EQUAL' | 'NEW';
+  historicalSymbol?: string;
+  historicalVariancePercent?: string | null;
 }
 
 export interface CostComparisonResult {

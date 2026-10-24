@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar, TabType } from './components/Sidebar';
 import { Header } from './components/Header';
 import { OverviewView } from './features/overview/OverviewView';
+import { UploadView } from './features/upload/UploadView';
+import { ProjectsView } from './features/projects/ProjectsView';
+import { ClientsView } from './features/clients/ClientsView';
+import { ContractorsView } from './features/contractors/ContractorsView';
 import { ComparisonView } from './features/comparison/ComparisonView';
 import { BoqView } from './features/boq/BoqView';
 import { QuotationsView } from './features/quotations/QuotationsView';
@@ -71,6 +75,31 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSelectProjectById = async (projectId: string) => {
+    const found = projects.find((p) => p.id === projectId);
+    if (found) {
+      setSelectedProject(found);
+      loadProjectData(found.id);
+      setActiveTab('projects');
+    }
+  };
+
+  const handleProjectCreated = async (newPrj: Project) => {
+    const prjs = await api.getProjects();
+    setProjects(prjs);
+    const matched = prjs.find((p) => p.id === newPrj.id) || prjs[0];
+    if (matched) {
+      setSelectedProject(matched);
+      loadProjectData(matched.id);
+    }
+  };
+
+  const handleQuotationUploaded = async (projectId: string) => {
+    const prjs = await api.getProjects();
+    setProjects(prjs);
+    loadProjectData(projectId);
+  };
+
   const handleApproveBOQ = async (boqVersionId: string) => {
     try {
       await api.approveBOQ(boqVersionId, 'Approved by Project Manager / Estimator');
@@ -84,7 +113,7 @@ export const App: React.FC = () => {
 
   const handleExportReport = () => {
     if (!comparison) return;
-    const headers = ['Item #', 'Title', 'Unit', 'Quantity', 'Baseline Rate', 'Baseline Amount'];
+    const headers = ['Item #', 'Title', 'Unit', 'Quantity', 'Baseline Rate', 'Baseline Amount', 'Historical Benchmark Rate'];
     comparison.contractorSummaries.forEach((c) => {
       headers.push(`${c.contractorName} Rate`, `${c.contractorName} Amount`, `${c.contractorName} Scope`);
     });
@@ -98,6 +127,7 @@ export const App: React.FC = () => {
         `"${r.quantity}"`,
         `"${r.baselineRate}"`,
         `"${r.baselineAmount}"`,
+        `"${r.historicalBenchmarkRate || 'N/A'}"`,
       ];
       for (const cq of r.contractorQuotes) {
         row.push(`"${cq.quotedRate}"`, `"${cq.quotedAmount}"`, `"${cq.inclusionState}"`);
@@ -136,37 +166,93 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
+          {/* Executive Overview */}
           {activeTab === 'overview' && (
             <OverviewView
               comparison={comparison}
               project={selectedProject}
               onNavigateToComparison={() => setActiveTab('comparison')}
               onNavigateToBOQ={() => setActiveTab('boq')}
+              onNavigateToUpload={() => setActiveTab('upload')}
             />
           )}
 
+          {/* Upload & Ingestion Hub */}
+          {activeTab === 'upload' && (
+            <UploadView
+              projects={projects}
+              selectedProject={selectedProject}
+              onProjectCreated={handleProjectCreated}
+              onQuotationUploaded={handleQuotationUploaded}
+              onNavigateToComparison={() => setActiveTab('comparison')}
+              onNavigateToProjects={() => setActiveTab('projects')}
+            />
+          )}
+
+          {/* Projects Hub & Finalization */}
+          {activeTab === 'projects' && (
+            <ProjectsView
+              projects={projects}
+              selectedProject={selectedProject}
+              onSelectProject={(p) => {
+                setSelectedProject(p);
+                loadProjectData(p.id);
+              }}
+              onNavigateToComparison={() => setActiveTab('comparison')}
+              onRefreshProjects={() => {
+                loadInitialData();
+                if (selectedProject) loadProjectData(selectedProject.id);
+              }}
+            />
+          )}
+
+          {/* Client Directory */}
+          {activeTab === 'clients' && (
+            <ClientsView
+              onSelectProjectAndNavigate={(projectId) => {
+                handleSelectProjectById(projectId);
+              }}
+            />
+          )}
+
+          {/* Contractor Directory */}
+          {activeTab === 'contractors' && (
+            <ContractorsView
+              onSelectProjectAndNavigate={(projectId) => {
+                handleSelectProjectById(projectId);
+              }}
+            />
+          )}
+
+          {/* Bid Comparison Matrix with Historical Indicators */}
           {activeTab === 'comparison' && (
             <ComparisonView comparison={comparison} loading={loading} />
           )}
 
+          {/* Client BOQ Master */}
           {activeTab === 'boq' && (
             <BoqView boqVersions={boqVersions} onApprove={handleApproveBOQ} />
           )}
 
+          {/* Quotations List */}
           {activeTab === 'quotations' && (
             <QuotationsView quotations={quotations} />
           )}
 
+          {/* Profitability & Margins */}
           {activeTab === 'financials' && (
             <FinancialsView project={selectedProject} />
           )}
 
+          {/* Procurement & GRN */}
           {activeTab === 'procurement' && (
             <ProcurementView project={selectedProject} />
           )}
 
+          {/* Historical Benchmarks Catalog */}
           {activeTab === 'benchmarks' && <BenchmarksView />}
 
+          {/* System Observability */}
           {activeTab === 'observability' && (
             <ObservabilityView systemHealth={health} />
           )}

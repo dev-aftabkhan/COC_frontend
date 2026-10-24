@@ -28,6 +28,7 @@ interface OverviewViewProps {
   project: Project | null;
   onNavigateToComparison: () => void;
   onNavigateToBOQ: () => void;
+  onNavigateToUpload?: () => void;
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
@@ -35,12 +36,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   project,
   onNavigateToComparison,
   onNavigateToBOQ,
+  onNavigateToUpload,
 }) => {
   if (!comparison) {
     return (
       <div className="glass-panel p-10 text-center text-slate-400">
         <Layers className="w-10 h-10 text-cyan-400 mx-auto mb-3 animate-pulse" />
-        <h3 className="text-base font-bold text-white mb-1">Loading Tender Intelligence...</h3>
+        <h3 className="text-base font-bold text-white mb-1">
+          {project ? `Loading Tender Intelligence for ${project.name}...` : 'Loading Tender Intelligence...'}
+        </h3>
         <p className="text-xs text-slate-400">Parsing project baseline and contractor quotations.</p>
       </div>
     );
@@ -88,15 +92,27 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <div className="space-y-1.5 z-10">
           <div className="flex items-center gap-2">
             <span className="badge badge-turnkey text-[10px]">TENDER INTELLIGENCE SUITE</span>
-            <span className="text-xs text-slate-400">ITC Fortune Guwahati • Project Ref {project?.code}</span>
+            <span className="text-xs text-slate-400">
+              {project?.name || comparison.projectName} • Ref {project?.code || comparison.projectId}
+            </span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
             Commercial Cost Intelligence Overview
           </h1>
           <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-            Multi-contractor quotation reconciliation active. Automated normalization identified{' '}
-            <strong className="text-cyan-400">{totalContractors} contractor submissions</strong> for Client BOQ{' '}
-            <strong className="text-slate-100">Revision {comparison.boqVersionCode}</strong>.
+            {totalContractors > 0 ? (
+              <>
+                Multi-contractor quotation reconciliation active. Automated normalization identified{' '}
+                <strong className="text-cyan-400">{totalContractors} contractor submissions</strong> for Client BOQ{' '}
+                <strong className="text-slate-100">Revision {comparison.boqVersionCode}</strong>.
+              </>
+            ) : (
+              <>
+                Client BOQ Baseline <strong className="text-slate-100">Revision {comparison.boqVersionCode}</strong>{' '}
+                ingested with <strong className="text-cyan-400">{comparison.matrixRows.length} scope items</strong>.
+                Historical cost benchmarks linked. Upload contractor quotation sheets to begin bid reconciliation.
+              </>
+            )}
           </p>
         </div>
 
@@ -134,42 +150,52 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
           <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
             <span className="text-emerald-400 font-bold">Approved</span>
-            <span>Client Scope Baseline (97 items)</span>
+            <span>Client Scope Baseline ({comparison.matrixRows.length} items)</span>
           </div>
         </div>
 
         {/* Metric 2 */}
         <div
           className="glass-panel p-5 relative overflow-hidden group"
-          title={`Exact Raw: ₹${Number(comparison.lowestRawBid.amount).toLocaleString('en-IN')}`}
+          title={totalContractors > 0 ? `Exact Raw: ₹${Number(comparison.lowestRawBid.amount).toLocaleString('en-IN')}` : 'Awaiting contractor quotes'}
         >
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Quoted Raw Bid</span>
             <Building className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-300 font-mono tracking-tight">
-            {formatINR(comparison.lowestRawBid.amount)}
+            {totalContractors > 0 ? formatINR(comparison.lowestRawBid.amount) : '₹0.00'}
           </div>
           <div className="text-[11px] text-amber-400/90 mt-2 flex items-center gap-1 truncate font-medium">
-            <span>By {comparison.lowestRawBid.contractorName}</span>
-            <span className="text-[9px] bg-amber-500/20 px-1 rounded font-bold">PARTIAL</span>
+            {totalContractors > 0 ? (
+              <>
+                <span>By {comparison.lowestRawBid.contractorName}</span>
+                <span className="text-[9px] bg-amber-500/20 px-1 rounded font-bold">PARTIAL</span>
+              </>
+            ) : (
+              <span className="text-slate-400 text-[10px]">Awaiting contractor quotations</span>
+            )}
           </div>
         </div>
 
         {/* Metric 3 */}
         <div
           className="glass-panel p-5 relative overflow-hidden group border-cyan-500/30"
-          title={`Exact Scope-Adjusted: ₹${Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN')}`}
+          title={totalContractors > 0 ? `Exact Scope-Adjusted: ₹${Number(comparison.lowestScopeAdjustedBid.amount).toLocaleString('en-IN')}` : 'Awaiting contractor quotes'}
         >
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
             <span>Lowest Scope-Adjusted Bid</span>
             <Sparkles className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
-            {formatINR(comparison.lowestScopeAdjustedBid.amount)}
+            {totalContractors > 0 ? formatINR(comparison.lowestScopeAdjustedBid.amount) : '₹0.00'}
           </div>
           <div className="text-[11px] text-cyan-300 mt-2 flex items-center gap-1 font-medium truncate">
-            <span>By {comparison.lowestScopeAdjustedBid.contractorName}</span>
+            {totalContractors > 0 ? (
+              <span>By {comparison.lowestScopeAdjustedBid.contractorName}</span>
+            ) : (
+              <span className="text-slate-400 text-[10px]">Scope normalization ready</span>
+            )}
           </div>
         </div>
 
@@ -180,21 +206,54 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-xl font-bold text-slate-100 mt-0.5">
-            {compliantCount > 0 ? (
-              <span className="text-emerald-400 flex items-center gap-1">
-                <ShieldCheck className="w-5 h-5" /> {compliantCount} Turnkey Bid
-              </span>
+            {totalContractors > 0 ? (
+              compliantCount > 0 ? (
+                <span className="text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="w-5 h-5" /> {compliantCount} Turnkey Bid
+                </span>
+              ) : (
+                <span className="text-amber-400 flex items-center gap-1.5 text-sm font-semibold">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions Reconciled
+                </span>
+              )
             ) : (
-              <span className="text-amber-400 flex items-center gap-1.5 text-sm font-semibold">
-                <AlertTriangle className="w-4 h-4 shrink-0" /> Exclusions Reconciled
+              <span className="text-cyan-400 flex items-center gap-1 text-sm font-semibold">
+                <ShieldCheck className="w-4 h-4" /> Baseline Verified
               </span>
             )}
           </div>
           <div className="text-[11px] text-slate-400 mt-2">
-            8 Tenderers Evaluated Across Civil & Wet Works
+            {totalContractors > 0
+              ? `${totalContractors} Tenderers Evaluated Across Scope Items`
+              : 'Historical Rate Benchmarking Linked'}
           </div>
         </div>
       </div>
+
+      {/* Zero Contractors Callout */}
+      {totalContractors === 0 && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-[#101c38] to-[#0a1224] border border-cyan-500/40 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Next Step in Tender Lifecycle</span>
+              <span className="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded font-mono">STEP 2 OF 3</span>
+            </div>
+            <h3 className="text-base font-bold text-white">Upload Contractor Quotations</h3>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Upload contractor quote sheets to unlock multi-bid dispersion curves, scope normalization, unquoted exclusion detection, and deterministic contractor rankings.
+            </p>
+          </div>
+          {onNavigateToUpload && (
+            <button
+              onClick={onNavigateToUpload}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 flex items-center gap-2 shrink-0 cursor-pointer transition-all hover:scale-105"
+            >
+              <span>Upload Contractor Quotes</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Visual Analytics Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -4,16 +4,23 @@ import {
   BarChart3,
   FileSpreadsheet,
   Building2,
+  Building,
   DollarSign,
   PackageCheck,
   TrendingUp,
   Activity,
   Layers,
+  UploadCloud,
+  FolderKanban,
 } from 'lucide-react';
 import { Project } from '../types';
 
 export type TabType =
   | 'overview'
+  | 'upload'
+  | 'projects'
+  | 'clients'
+  | 'contractors'
   | 'comparison'
   | 'boq'
   | 'quotations'
@@ -42,19 +49,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isHealthy = systemHealth?.status === 'ok';
 
   const navItems: { id: TabType; label: string; icon: React.ElementType; badge?: string; category: string }[] = [
-    { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard, category: 'TENDER INTELLIGENCE' },
-    { id: 'comparison', label: 'Bid Comparison Matrix', icon: BarChart3, badge: '8 Quotes', category: 'TENDER INTELLIGENCE' },
-    { id: 'boq', label: 'Client BOQ Master', icon: FileSpreadsheet, badge: '46 Items', category: 'TENDER INTELLIGENCE' },
-    { id: 'quotations', label: 'Contractor Directory', icon: Building2, category: 'TENDER INTELLIGENCE' },
-    
+    // Primary Ingestion & Entities
+    { id: 'upload', label: 'Upload & Ingest', icon: UploadCloud, badge: 'Upload', category: 'INGESTION & ENTITIES' },
+    { id: 'projects', label: 'Projects Hub', icon: FolderKanban, badge: `${projects.length}`, category: 'INGESTION & ENTITIES' },
+    { id: 'clients', label: 'Client Directory', icon: Building2, category: 'INGESTION & ENTITIES' },
+    { id: 'contractors', label: 'Contractor Directory', icon: Building, category: 'INGESTION & ENTITIES' },
+
+    // Cost Intelligence & Bidding
+    { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard, category: 'COST INTELLIGENCE & TENDER' },
+    { id: 'comparison', label: 'Bid Comparison Matrix', icon: BarChart3, badge: 'Matrix', category: 'COST INTELLIGENCE & TENDER' },
+    { id: 'boq', label: 'Client BOQ Master', icon: FileSpreadsheet, category: 'COST INTELLIGENCE & TENDER' },
+
+    // Commercials & Execution
     { id: 'financials', label: 'Profitability & Margins', icon: DollarSign, category: 'COMMERCIALS & EXECUTION' },
     { id: 'procurement', label: 'Purchase Orders & GRN', icon: PackageCheck, category: 'COMMERCIALS & EXECUTION' },
-    { id: 'benchmarks', label: 'Historical Rate Benchmarks', icon: TrendingUp, category: 'COMMERCIALS & EXECUTION' },
+    { id: 'benchmarks', label: 'Historical Benchmarks', icon: TrendingUp, category: 'COMMERCIALS & EXECUTION' },
 
-    { id: 'observability', label: 'System Observability', icon: Activity, badge: isHealthy ? 'UP' : 'ERR', category: 'GOVERNANCE & SYSTEM' },
+    // Governance
+    { id: 'observability', label: 'System Observability', icon: Activity, badge: isHealthy ? 'UP' : 'ERR', category: 'SYSTEM & OBSERVABILITY' },
   ];
 
-  const categories = ['TENDER INTELLIGENCE', 'COMMERCIALS & EXECUTION', 'GOVERNANCE & SYSTEM'];
+  const categories = [
+    'INGESTION & ENTITIES',
+    'COST INTELLIGENCE & TENDER',
+    'COMMERCIALS & EXECUTION',
+    'SYSTEM & OBSERVABILITY',
+  ];
 
   return (
     <aside className="w-64 bg-[#080d1a] border-r border-slate-800/80 flex flex-col shrink-0 min-h-screen select-none">
@@ -76,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Project Card Selector */}
+      {/* Active Project Card Selector */}
       <div className="p-3.5 m-3 rounded-xl bg-[#0f172a]/90 border border-slate-800/90 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -97,15 +117,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {p.name} ({p.code})
             </option>
           ))}
         </select>
 
-        {selectedProject && (
-          <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-2 font-mono">
-            <span>{selectedProject.code}</span>
-            <span className="text-slate-300 truncate max-w-[120px]">{selectedProject.client?.name}</span>
+        {selectedProject?.assignedContractor && (
+          <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-emerald-400 flex items-center gap-1">
+            <span>Awarded:</span>
+            <strong className="truncate">{selectedProject.assignedContractor.name}</strong>
           </div>
         )}
       </div>
@@ -114,39 +134,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="flex-1 px-3 py-2 space-y-5 overflow-y-auto">
         {categories.map((cat) => {
           const items = navItems.filter((i) => i.category === cat);
+          if (items.length === 0) return null;
+
           return (
             <div key={cat} className="space-y-1">
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 {cat}
               </div>
+
               {items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+
                 return (
                   <button
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
                       isActive
-                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 border border-cyan-500/30 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 truncate">
                       <Icon
-                        className={`w-4 h-4 transition-colors ${
-                          isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
+                        className={`w-4 h-4 transition-colors shrink-0 ${
+                          isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'
                         }`}
                       />
-                      <span>{item.label}</span>
+                      <span className="truncate">{item.label}</span>
                     </div>
 
                     {item.badge && (
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
                           isActive
-                            ? 'bg-cyan-500/30 text-cyan-300'
-                            : 'bg-slate-800 text-slate-400'
+                            ? 'bg-cyan-500 text-slate-950 font-black'
+                            : 'bg-slate-800/90 text-slate-400'
                         }`}
                       >
                         {item.badge}
@@ -160,21 +184,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* User Footer Profile */}
-      <div className="p-3 border-t border-slate-800/80 bg-[#090f1d] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-600 to-indigo-700 text-white font-bold text-xs flex items-center justify-center border border-cyan-500/30">
-              PG
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#090f1d]" />
-          </div>
-          <div className="text-left text-xs">
-            <div className="font-semibold text-slate-200">Pulkit Garg</div>
-            <div className="text-[10px] text-cyan-400">Chief Estimator</div>
-          </div>
+      {/* System Status Footer */}
+      <div className="p-3 m-3 rounded-xl bg-[#0a101d] border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+          <span className="font-mono text-[10px] text-slate-300">Remote Postgres DB</span>
         </div>
-        <div className="text-[10px] font-mono text-slate-500">v1.0</div>
+        <span className="text-[10px] font-mono text-cyan-400">135.235.138.171</span>
       </div>
     </aside>
   );
